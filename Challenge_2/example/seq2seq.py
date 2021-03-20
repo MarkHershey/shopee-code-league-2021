@@ -71,6 +71,11 @@ train_iterator, valid_iterator, test_iterator = BucketIterator.splits(
     datasets=(train_data, valid_data, test_data), batch_size=BATCH_SIZE, device=device
 )
 
+# for i in train_iterator:
+#     print(type(i))
+#     print(i)
+#     raise Exception()
+
 
 class Encoder(nn.Module):
     def __init__(self, input_dim, emb_dim, hid_dim, n_layers, dropout):

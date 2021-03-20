@@ -5,6 +5,10 @@ from typing import Dict, List
 from markkk.logger import logger
 from nltk.tokenize import word_tokenize
 
+# from torchtext.legacy.datasets import Dataset
+from torchtext.legacy.data.example import Example
+from torchtext.legacy.data import BucketIterator, Field
+
 NUM_ROWS = 50
 
 
@@ -118,6 +122,47 @@ def tokenize(string: str) -> List[str]:
     return new_tokens
 
 
+# source
+SRC = Field(init_token="<sos>", eos_token="<eos>", lower=True)
+# target
+TRG = Field(init_token="<sos>", eos_token="<eos>", lower=True)
+
+
+def build_examples() -> List[Example]:
+    examples = []
+    logger.debug("Building Examples form data/train.csv")
+    with open("data/train.csv") as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=",", quotechar='"')
+
+        line_count = 0
+        for row in csv_reader:
+
+            if line_count == 0:
+                # first row (header)
+                pass
+            else:
+
+                _in = row[1]
+                _out = row[2]
+                _in_tokens = tokenize(_in)
+                _out_tokens = tokenize(_out)
+                datapoint = {"in": _in_tokens, "out": _out_tokens}
+                fields = {"in": ("in", SRC), "out": ("out", TRG)}
+                example = Example.fromdict(datapoint, fields)
+                examples.append(example)
+                print(example.__dict__)
+
+            line_count += 1
+
+        logger.debug(f"Processed {line_count} lines.")
+
+    logger.debug(f"Produced {len(examples)} examples.")
+    return examples
+
+
+# class AddressDataset(Dataset):
+
 if __name__ == "__main__":
-    build_vocab()
-    load_vocab()
+    # build_vocab()
+    # load_vocab()
+    build_examples()
