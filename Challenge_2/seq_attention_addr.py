@@ -445,7 +445,7 @@ def initialize_weights(m):
 
 model.apply(initialize_weights)
 
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.00005
 
 optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
@@ -531,7 +531,7 @@ def epoch_time(start_time, end_time):
     return elapsed_mins, elapsed_secs
 
 
-N_EPOCHS = 10
+N_EPOCHS = 35
 CLIP = 1
 
 best_valid_loss = float("inf")
