@@ -1,7 +1,8 @@
 import math
 import random
 import time
-from markkk.logger import logger
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
@@ -10,8 +11,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchtext
+from markkk.logger import logger
+from torch._C import T
 from torchtext.legacy.data import BucketIterator, Field
 from torchtext.legacy.datasets import Multi30k
+
 from preprocess import SRC, TRG, get_iterators, get_submission_test, tokenize
 
 SEED = 1234
@@ -559,7 +563,7 @@ def inference(raw_address, src_field, trg_field, model, device, max_len=50):
     else:
         raise Exception()
 
-    print(tokens)
+    # print(tokens)
 
     # append the <sos> and <eos> tokens
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
@@ -609,8 +613,48 @@ def inference(raw_address, src_field, trg_field, model, device, max_len=50):
     return trg_tokens[1:-1], attention
 
 
-for src in get_submission_test():
+results = []
+
+for src in get_submission_test(True):
     tokens, attention = inference(src, SRC, TRG, model, device)
+
+    result_line = ""
+    if len(tokens) == 0:
+        result_line = "/"
+    elif len(tokens) == 1:
+        if tokens[0] == "/":
+            result_line = "/"
+        else:
+            result_line = "/" + tokens[0]
+    else:
+        # len(tokens) >= 2
+        for token in tokens:
+            if token in ("/", ".", ","):
+                result_line += token
+            else:
+                if result_line == "":
+                    result_line += token
+                elif result_line[-1] == "/":
+                    result_line += token
+                else:
+                    result_line += " "
+                    result_line += token
+
+    results.append(result_line)
     logger.info(f"INPUT : {src}")
-    logger.info(f"OUTPOT: {' '.join(tokens)}")
+    logger.info(f"OUTPUT: {result_line}")
     print()
+
+## construct csv output
+outpath = Path("output.csv").resolve()
+csv_rows = ["id,POI/street"]
+for idx, result in enumerate(results):
+    if "/" not in result:
+        result = "/" + result
+
+    row = str(idx) + "," + '"' + result + '"'
+    csv_rows.append(row)
+
+with outpath.open(mode="w") as f:
+    f.write("\n".join(csv_rows))
+    logger.debug(f"Exported {outpath}")
