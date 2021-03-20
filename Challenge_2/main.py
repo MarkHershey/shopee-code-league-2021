@@ -11,48 +11,8 @@ import torch.optim as optim
 from markkk.logger import logger
 from torchtext.legacy.data import BucketIterator, Field
 from torchtext.legacy.datasets import Multi30k
+from preprocess import get_iterators, SRC, TRG
 
-spacy_en = spacy.load("en_core_web_sm")
-
-
-def tokenize_input(text: str) -> List[str]:
-    return [tok.text for tok in spacy_en.tokenizer(text)][::-1]
-
-
-def tokenize_en(text: str) -> List[str]:
-    return [tok.text for tok in spacy_en.tokenizer(text)]
-
-
-# source
-SRC = Field(tokenize=tokenize_input, init_token="<sos>", eos_token="<eos>", lower=True)
-# target
-TRG = Field(tokenize=tokenize_en, init_token="<sos>", eos_token="<eos>", lower=True)
-
-train_data, valid_data, test_data = Multi30k.splits(
-    exts=(".de", ".en"), fields=(SRC, TRG)
-)
-
-# print(f"Number of training examples: {len(train_data.examples)}")
-# print(f"Number of validation examples: {len(valid_data.examples)}")
-# print(f"Number of testing examples: {len(test_data.examples)}")
-
-# print(vars(train_data.examples[0]))
-
-# print(type(train_data))
-# >>> torchtext.legacy.datasets.translation.Multi30k
-
-# print(type(train_data.examples))
-# >>> <class 'list'>
-
-# print((train_data.examples[0]))
-# >>> <torchtext.legacy.data.example.Example object at 0x7f8441002940>
-
-# print((train_data.examples[0].__dict__))
-# >>> {'src': ['.', 'büsche', 'vieler', 'nähe', 'der', 'in', 'freien', 'im', 'sind', 'männer', 'weiße', 'junge', 'zwei'], 'trg': ['two', 'young', ',', 'white', 'males', 'are', 'outside', 'near', 'many', 'bushes', '.']}
-
-# Construct the Vocab object for this field from one or more datasets.
-SRC.build_vocab(train_data, min_freq=1)
-TRG.build_vocab(train_data, min_freq=1)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -60,9 +20,7 @@ logger.debug(f"Device: {device}")
 
 BATCH_SIZE = 128
 
-train_iterator, valid_iterator, test_iterator = BucketIterator.splits(
-    datasets=(train_data, valid_data, test_data), batch_size=BATCH_SIZE, device=device
-)
+train_iterator, valid_iterator, test_iterator = get_iterators()
 
 
 class Encoder(nn.Module):
@@ -397,13 +355,17 @@ for epoch in range(N_EPOCHS):
     # print(f"Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s")
     # print(f"\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}")
     # print(f"\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}")
-    logger.info(f"Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s")
+    logger.info(
+        f"========== Epoch: {epoch+1:02} | {epoch_mins}m {epoch_secs}s =========="
+    )
     logger.info(f"Train Loss: {train_loss:.3f}")
     logger.info(f"Validation Loss: {valid_loss:.3f}")
+    print()
 
 logger.debug("Training Completed...\n")
 
-model.load_state_dict(torch.load("tut1-model.pt"))
+
+model.load_state_dict(torch.load("addr_model.pt"))
 
 test_loss = evaluate(model, test_iterator, criterion)
 

@@ -62,7 +62,7 @@ SRC.build_vocab(train_data, min_freq=2)
 TRG.build_vocab(train_data, min_freq=2)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+device = torch.device("cpu")
 logger.debug(f"Device: {device}")
 
 BATCH_SIZE = 128

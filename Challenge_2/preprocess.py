@@ -4,8 +4,8 @@ from typing import Dict, List
 
 from markkk.logger import logger
 from nltk.tokenize import word_tokenize
-
-# from torchtext.legacy.datasets import Dataset
+import torch
+from torchtext.legacy.data.dataset import Dataset
 from torchtext.legacy.data.example import Example
 from torchtext.legacy.data import BucketIterator, Field
 
@@ -123,19 +123,25 @@ def tokenize(string: str) -> List[str]:
 
 
 # source
-SRC = Field(init_token="<sos>", eos_token="<eos>", lower=True)
+SRC = Field(tokenize=tokenize, init_token="<sos>", eos_token="<eos>", lower=True)
 # target
-TRG = Field(init_token="<sos>", eos_token="<eos>", lower=True)
+TRG = Field(tokenize=tokenize, init_token="<sos>", eos_token="<eos>", lower=True)
+BATCH_SIZE = 128
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def build_examples() -> List[Example]:
+def build_examples(exp: bool = False) -> List[Example]:
+    NUM_ROWS = 50 if exp else 500001
     examples = []
     logger.debug("Building Examples form data/train.csv")
-    with open("data/train.csv") as csv_file:
+    with open("data/train.csv", encoding='utf-8') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=",", quotechar='"')
 
         line_count = 0
         for row in csv_reader:
+
+            if line_count >= NUM_ROWS:
+                break
 
             if line_count == 0:
                 # first row (header)
@@ -144,13 +150,13 @@ def build_examples() -> List[Example]:
 
                 _in = row[1]
                 _out = row[2]
-                _in_tokens = tokenize(_in)
-                _out_tokens = tokenize(_out)
-                datapoint = {"in": _in_tokens, "out": _out_tokens}
-                fields = {"in": ("in", SRC), "out": ("out", TRG)}
+                # _in_tokens = tokenize(_in)
+                # _out_tokens = tokenize(_out)
+                datapoint = {"src": _in, "trg": _out}
+                fields = {"src": ("src", SRC), "trg": ("trg", TRG)}
                 example = Example.fromdict(datapoint, fields)
                 examples.append(example)
-                print(example.__dict__)
+                # print(example.__dict__)
 
             line_count += 1
 
@@ -160,9 +166,33 @@ def build_examples() -> List[Example]:
     return examples
 
 
+def get_iterators():
+    examples: List[Example] = build_examples(exp=False)
+    fields: List[tuple] = [("src", SRC), ("trg", TRG)]
+    dataset = Dataset(examples=examples, fields=fields)
+    train_ratio, test_ratio, validate_ratio = (0.7, 0.2, 0.1)
+    train_data, valid_data, test_data = dataset.split(
+        split_ratio=[train_ratio, test_ratio, validate_ratio]
+    )
+    logger.debug(f"Number of training examples: {len(train_data.examples)}")
+    logger.debug(f"Number of validation examples: {len(valid_data.examples)}")
+    logger.debug(f"Number of testing examples: {len(test_data.examples)}")
+
+    SRC.build_vocab(train_data, min_freq=1)
+    TRG.build_vocab(train_data, min_freq=1)
+
+    train_iterator, valid_iterator, test_iterator = BucketIterator.splits(
+        datasets=(train_data, valid_data, test_data),
+        batch_size=BATCH_SIZE,
+        device=device,
+    )
+
+    return train_iterator, valid_iterator, test_iterator
+
+
 # class AddressDataset(Dataset):
 
 if __name__ == "__main__":
     # build_vocab()
     # load_vocab()
-    build_examples()
+    get_iterators()
