@@ -124,15 +124,27 @@ def tokenize(string: str) -> List[str]:
 
 
 # source
-SRC = Field(tokenize=tokenize, init_token="<sos>", eos_token="<eos>", lower=True)
+SRC = Field(
+    tokenize=tokenize,
+    init_token="<sos>",
+    eos_token="<eos>",
+    lower=True,
+    batch_first=True,
+)
 # target
-TRG = Field(tokenize=tokenize, init_token="<sos>", eos_token="<eos>", lower=True)
+TRG = Field(
+    tokenize=tokenize,
+    init_token="<sos>",
+    eos_token="<eos>",
+    lower=True,
+    batch_first=True,
+)
 BATCH_SIZE = 128
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def build_examples(exp: bool = False) -> List[Example]:
-    NUM_ROWS = 50 if exp else 500001
+    NUM_ROWS = 1000 if exp else 500001
     examples = []
     logger.debug("Building Examples form data/train.csv")
     with open("data/train.csv", encoding="utf-8") as csv_file:

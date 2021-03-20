@@ -609,43 +609,72 @@ print(f"| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |")
 
 def inference(sentence, src_field, trg_field, model, device, max_len=50):
 
+    # set to eval
     model.eval()
 
+    # tokenize the source sentence if it has not been tokenized (is a string)
     if isinstance(sentence, str):
         nlp = spacy.load("de_core_news_sm")
         tokens = [token.text.lower() for token in nlp(sentence)]
     else:
         tokens = [token.lower() for token in sentence]
 
+    # append the <sos> and <eos> tokens
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
 
+    # numericalize the source sentence
     src_indexes = [src_field.vocab.stoi[token] for token in tokens]
 
+    # convert it to a tensor and add a batch dimension
     src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
 
+    # create the source sentence mask
     src_mask = model.make_src_mask(src_tensor)
 
     with torch.no_grad():
+        # feed the source sentence and mask into the encoder
         enc_src = model.encoder(src_tensor, src_mask)
 
+    # create a list to hold the output sentence, initialized with an <sos> token
     trg_indexes = [trg_field.vocab.stoi[trg_field.init_token]]
 
+    # while we have not hit a maximum length
     for i in range(max_len):
 
+        # convert the current output sentence prediction into a tensor with a batch dimension
         trg_tensor = torch.LongTensor(trg_indexes).unsqueeze(0).to(device)
 
+        # create a target sentence mask
         trg_mask = model.make_trg_mask(trg_tensor)
 
         with torch.no_grad():
+            # place the current output, encoder output and both masks into the decoder
             output, attention = model.decoder(trg_tensor, enc_src, trg_mask, src_mask)
 
+        # get next output token prediction from decoder along with attention
         pred_token = output.argmax(2)[:, -1].item()
 
+        # add prediction to current output sentence prediction
         trg_indexes.append(pred_token)
 
+        # break if the prediction was an <eos> token
         if pred_token == trg_field.vocab.stoi[trg_field.eos_token]:
             break
 
+    # convert the output sentence from indexes to tokens using vocab
     trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
 
-    return trg_tokens[1:], attention
+    return trg_tokens[1:-1], attention
+
+
+example_idx = 8
+
+src = vars(train_data.examples[example_idx])["src"]
+trg = vars(train_data.examples[example_idx])["trg"]
+
+print(f"src = {src}")
+print(f"trg = {trg}")
+
+translation, attention = inference(src, SRC, TRG, model, device)
+
+print(f"predicted trg = {translation}")
