@@ -187,7 +187,7 @@ def get_iterators():
     fields: List[tuple] = [("src", SRC), ("trg", TRG)]
     dataset = Dataset(examples=examples, fields=fields)
     dataset.sort_key = sort_key
-    train_ratio, test_ratio, validate_ratio = (0.7, 0.2, 0.1)
+    train_ratio, test_ratio, validate_ratio = (0.98, 0.01, 0.01)
     train_data, valid_data, test_data = dataset.split(
         split_ratio=[train_ratio, test_ratio, validate_ratio]
     )
