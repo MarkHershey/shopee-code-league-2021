@@ -605,7 +605,7 @@ def inference(raw_address, src_field, trg_field, model, device, max_len=50):
 
 results = []
 
-for src in get_submission_test(True):
+for src in get_submission_test(False):
     tokens, attention = inference(src, SRC, TRG, model, device)
 
     result_line = ""
@@ -645,6 +645,6 @@ for idx, result in enumerate(results):
     row = str(idx) + "," + '"' + result + '"'
     csv_rows.append(row)
 
-with outpath.open(mode="w") as f:
+with outpath.open(mode="w", encoding="utf-8") as f:
     f.write("\n".join(csv_rows))
     logger.debug(f"Exported {outpath}")
