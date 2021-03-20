@@ -11,8 +11,8 @@ import torch.optim as optim
 from markkk.logger import logger
 from torchtext.legacy.data import BucketIterator, Field
 from torchtext.legacy.datasets import Multi30k
-from preprocess import get_iterators, SRC, TRG
 
+from preprocess import SRC, TRG, get_iterators
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -350,7 +350,7 @@ for epoch in range(N_EPOCHS):
 
     if valid_loss < best_valid_loss:
         best_valid_loss = valid_loss
-        torch.save(model.state_dict(), "tut1-model.pt")
+        torch.save(model.state_dict(), "addr_model.pt")
 
     # print(f"Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s")
     # print(f"\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}")
