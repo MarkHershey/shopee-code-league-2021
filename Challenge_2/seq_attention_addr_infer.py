@@ -1,20 +1,10 @@
-import math
 import random
-import time
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
-import spacy
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torchtext
 from markkk.logger import logger
-from torch._C import T
-from torchtext.legacy.data import BucketIterator, Field
-from torchtext.legacy.datasets import Multi30k
 
 from preprocess import SRC, TRG, get_iterators, get_submission_test, tokenize
 
