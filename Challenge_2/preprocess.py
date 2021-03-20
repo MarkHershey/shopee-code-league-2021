@@ -208,9 +208,32 @@ def get_iterators():
     return train_iterator, valid_iterator, test_iterator
 
 
-# class AddressDataset(Dataset):
+def get_submission_test(exp: bool = False) -> List[str]:
+    NUM_ROWS = 10 if exp else 500001
+    submission_test = []
+    logger.debug("Building Examples form data/test.csv")
+    with open("data/test.csv", encoding="utf-8") as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=",", quotechar='"')
+
+        line_count = 0
+        for row in csv_reader:
+
+            if line_count >= NUM_ROWS:
+                break
+
+            if line_count == 0:
+                # first row (header)
+                pass
+            else:
+                _in = row[1]
+                submission_test.append(_in)
+            line_count += 1
+        logger.debug(f"Processed {line_count} lines.")
+
+    return submission_test
+
 
 if __name__ == "__main__":
     # build_vocab()
     # load_vocab()
-    get_iterators()
+    print(get_submission_test(True))

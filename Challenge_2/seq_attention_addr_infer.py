@@ -12,7 +12,7 @@ import torch.optim as optim
 import torchtext
 from torchtext.legacy.data import BucketIterator, Field
 from torchtext.legacy.datasets import Multi30k
-from preprocess import SRC, TRG, get_iterators
+from preprocess import SRC, TRG, get_iterators, get_submission_test, tokenize
 
 SEED = 1234
 
@@ -546,44 +546,47 @@ logger.info(f"Test Loss: {test_loss:.3f}")
 ############# Inference
 
 
-def inference(sentence, src_field, trg_field, model, device, max_len=50):
+def inference(raw_address, src_field, trg_field, model, device, max_len=50):
 
-    # set to eval
+    # set model to eval mode
     model.eval()
 
-    # tokenize the source sentence if it has not been tokenized (is a string)
-    if isinstance(sentence, str):
-        nlp = spacy.load("de_core_news_sm")
-        tokens = [token.text.lower() for token in nlp(sentence)]
+    # tokenize the source raw_address if it has not been tokenized (is a string)
+    if isinstance(raw_address, str):
+        tokens = tokenize(raw_address)
+    elif isinstance(raw_address, list):
+        tokens = [token.lower() for token in raw_address]
     else:
-        tokens = [token.lower() for token in sentence]
+        raise Exception()
+
+    print(tokens)
 
     # append the <sos> and <eos> tokens
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
 
-    # numericalize the source sentence
+    # numericalize the source raw_address
     src_indexes = [src_field.vocab.stoi[token] for token in tokens]
 
     # convert it to a tensor and add a batch dimension
     src_tensor = torch.LongTensor(src_indexes).unsqueeze(0).to(device)
 
-    # create the source sentence mask
+    # create the source raw_address mask
     src_mask = model.make_src_mask(src_tensor)
 
     with torch.no_grad():
-        # feed the source sentence and mask into the encoder
+        # feed the source raw_address and mask into the encoder
         enc_src = model.encoder(src_tensor, src_mask)
 
-    # create a list to hold the output sentence, initialized with an <sos> token
+    # create a list to hold the output raw_address, initialized with an <sos> token
     trg_indexes = [trg_field.vocab.stoi[trg_field.init_token]]
 
     # while we have not hit a maximum length
     for i in range(max_len):
 
-        # convert the current output sentence prediction into a tensor with a batch dimension
+        # convert the current output raw_address prediction into a tensor with a batch dimension
         trg_tensor = torch.LongTensor(trg_indexes).unsqueeze(0).to(device)
 
-        # create a target sentence mask
+        # create a target raw_address mask
         trg_mask = model.make_trg_mask(trg_tensor)
 
         with torch.no_grad():
@@ -593,14 +596,21 @@ def inference(sentence, src_field, trg_field, model, device, max_len=50):
         # get next output token prediction from decoder along with attention
         pred_token = output.argmax(2)[:, -1].item()
 
-        # add prediction to current output sentence prediction
+        # add prediction to current output raw_address prediction
         trg_indexes.append(pred_token)
 
         # break if the prediction was an <eos> token
         if pred_token == trg_field.vocab.stoi[trg_field.eos_token]:
             break
 
-    # convert the output sentence from indexes to tokens using vocab
+    # convert the output raw_address from indexes to tokens using vocab
     trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
 
     return trg_tokens[1:-1], attention
+
+
+for src in get_submission_test():
+    tokens, attention = inference(src, SRC, TRG, model, device)
+    logger.info(f"INPUT : {src}")
+    logger.info(f"OUTPOT: {' '.join(tokens)}")
+    print()
